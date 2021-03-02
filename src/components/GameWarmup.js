@@ -1,241 +1,301 @@
 import React, { useEffect, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { isMobile } from "react-device-detect";
 import { useHistory } from "react-router-dom";
-import { ThreeHorseLoading } from "react-loadingg";
-import { usePubNub } from "pubnub-react";
+import { gameActions } from "../actions/game.actions";
 import shortid from "shortid";
+import Splash from "./Splash";
+import CompatibilityWarning from "./CompatibilityWarning";
+import MetaTags from "react-meta-tags";
 
-const GameWarmup = () => {
+const GameWarmup = ({ socket, fade, gameplayMusic }) => {
+  const dispatch = useDispatch();
+  const history = useHistory();
   const [playername, setPlayername] = useState("");
   const [roomIdVal, setRoomIdVal] = useState("");
   const [roomId, setRoomId] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState([{}]);
-  const [isCreator, setIsCreator] = useState(false);
-  const [playerCount, setPlayerCount] = useState(null);
-  const [ready, setReady] = useState(false);
+  const [mobile, setMobile] = useState(false);
   const [time, setTime] = useState(5);
-  const [lobbyChannel, setLobbyChannel] = useState(null);
   const [notification, setNotification] = useState(null);
   const [clicked, setClicked] = useState("warmup");
-  const pubnub = usePubNub();
+  const [showSplash, setShowSplash] = useState(true);
+  const [visible, setVisible] = useState(false);
+
+  const connectedPlayers = useSelector(
+    (state) => state.gameReducer.connectedPlayers
+  );
+  const room = useSelector((state) => state.gameReducer.room);
+
+  const gameStatus = useSelector((state) => state.gameReducer.gameStatus);
+
+  const joinRoom = () => {
+    if (roomIdVal.length === 5) {
+      setLoading(true);
+      setNotification("Waiting for room owner...");
+      const creator = false;
+      dispatch(gameActions.joinRoom(socket, playername, roomIdVal, creator));
+    } else {
+      setNotification("Enter a valid room id");
+    }
+  };
 
   useEffect(() => {
-    const handleMessage = (event) => {
-      const message = event.message;
-      const text = message.text || message;
-      const previousMessages = [...messages];
-      previousMessages[0] = { ...previousMessages[0], ...text };
-      setMessages(previousMessages);
+    setTimeout(() => {
+      setShowSplash(false);
+      setTimeout(() => {
+        if (!isMobile) {
+          setVisible(true);
+        } else {
+          setMobile(true);
+        }
+      }, 200);
+    }, 5000);
+
+    const startHandler = (data) => {
+      dispatch(gameActions.startGame());
     };
 
-    const handlePresence = (event) => {
-      var occupancy = event.occupancy;
-      setPlayerCount(occupancy);
+    const roomHandler = (data) => {
+      setNotification(data);
+      setLoading(false);
     };
-    pubnub.addListener({ message: handleMessage });
-    pubnub.addListener({ presence: handlePresence });
+
+    const absenceHandler = (data) => {
+      setNotification(data);
+      setLoading(false);
+    };
+    socket.on("startGame", startHandler);
+    socket.on("full-room", roomHandler);
+    socket.on("creator-not-here", absenceHandler);
 
     return () => {
-      pubnub.removeListener({ message: handleMessage });
-      pubnub.removeListener({ presence: handlePresence });
+      socket.off("startGame", startHandler);
+      socket.off("full-room", roomHandler);
+      socket.off("creator-not-here", absenceHandler);
     };
   }, []);
 
-  useEffect(() => {}, [ready]);
+  useEffect(() => {}, [connectedPlayers]);
 
-  useEffect(() => {
-    if (roomId != null) {
-      setLobbyChannel("tictactoelobby--" + roomId);
-      localStorage.setItem("channel", "tictactoelobby--" + roomId);
-      pubnub.subscribe({
-        channels: ["tictactoelobby--" + roomId],
-        withPresence: true,
-      });
-      pubnub.publish({
-        channel: "tictactoelobby--" + roomId,
-        message: { owner: playername },
-      });
-    }
-  }, [roomId]);
+  if (showSplash) {
+    return <Splash />;
+  }
 
-  useEffect(() => {
-    if (playerCount === 2) {
-      setReady(true);
-      setLoading(false);
-      const timeInterval = setInterval(() => {
-        if (time > 0) {
-          setTime(time - 1);
-        }
-
-        if (time === 0) {
-          clearInterval(timeInterval);
-        }
-      }, 1000);
-
-      return () => {
-        clearInterval(timeInterval);
-      };
-    }
-  }, [playerCount, time]);
-
-  const onPressCreate = (e) => {
-    // Create a random name for the channel
-
-    setRoomId(shortid.generate().substring(0, 5));
-  };
-
-  const onPressJoin = (e) => {
-    if (roomIdVal.length === 5) {
-      pubnub
-        .hereNow({
-          channels: [lobbyChannel],
-        })
-        .then((response) => {
-          if (response.totalOccupancy < 2) {
-            pubnub.subscribe({
-              channels: [lobbyChannel],
-              withPresence: true,
-            });
-            pubnub.publish({
-              channel: lobbyChannel,
-              message: { joiner: playername },
-            });
-          } else {
-            setNotification("This battle has already started.");
-          }
-        })
-        .catch((error) => {
-          console.log(error);
-        });
-    }
-  };
+  if (mobile) {
+    return <CompatibilityWarning />;
+  }
 
   return (
-    <div className="warmup-container">
-      <div className="warmup-card">
-        {!ready ? (
-          <>
-            {clicked === "warmup" && (
-              <>
-                <h1>Howdy {playername}!</h1>
-                <p>What's the name you're most proud of?</p>
-                <input
-                  placeholder="Enter your name"
-                  value={playername}
-                  onChange={(e) => {
-                    localStorage.setItem("name", e.target.value);
-                    setPlayername(e.target.value);
-                  }}
-                />
-                <button
-                  onClick={() => {
-                    setIsCreator(true);
-                    localStorage.setItem("role", "owner");
-                    onPressCreate();
-                    setClicked("create");
-                  }}
-                  className="warmup-btn"
-                >
-                  Create Game
-                </button>
-                <button
-                  onClick={() => {
-                    setIsCreator(false);
-                    localStorage.setItem("role", "joiner");
-                    setClicked("join");
-                  }}
-                  className="warmup-btn-inv"
-                >
-                  Join Game
-                </button>
-              </>
-            )}
+    <>
+      <MetaTags>
+        <title>
+          {gameStatus === "started"
+            ? "Battleground | Word Battle"
+            : "Changeroom | Word Battle"}
+        </title>
+        <meta
+          name="Word Battle"
+          content="You have 90 seconds to compete in a room."
+        />
+      </MetaTags>
+      <div className={"warmup-container"}>
+        <div className={visible ? "warmup-card-fadeIn" : "warmup-card"}>
+          <div
+            className={notification ? "notifications-fadeIn" : "notifications"}
+          >
+            <p
+              className={notification ? "notif-p" : "notif-p-fadeOut"}
+              style={{ color: "white" }}
+            >
+              {notification}
+            </p>
+          </div>
 
-            {clicked === "create" && (
-              <>
-                <p>Waiting for a player to join...</p>
-                <h1 style={{ marginTop: 30 }}>{roomId}</h1>
-                <p style={{ textAlign: "center", lineHeight: 2 }}>
-                  Share your room id with a friend to join this room and compete
-                  with you. Once someone joins, your battle starts immediately
-                </p>
+          <div className="warmup-padding">
+            <div>
+              {clicked === "warmup" && (
+                <>
+                  <h1>Howdy {playername.slice(0, 20)}!</h1>
+                  <p>What's the name you're most proud of?</p>
+                  <input
+                    placeholder="Enter your name"
+                    value={playername}
+                    maxLength={20}
+                    onChange={(e) => {
+                      if (e.target.value.length > 1) {
+                        setNotification(null);
+                      }
+                      localStorage.setItem("name", e.target.value);
 
-                <button
-                  onClick={() => {
-                    setClicked("warmup");
-                  }}
-                  className="warmup-btn"
-                >
-                  Go Back
-                </button>
-              </>
-            )}
-            {clicked === "join" && (
-              <>
-                <h1>Enter with a room id</h1>
-                {notification ? (
-                  <p style={{ marginBottom: 50, color: "red" }}>
-                    {notification}
-                  </p>
-                ) : (
-                  <p style={{ marginBottom: 50, textAlign: "center" }}>
-                    Join this battle
-                  </p>
-                )}
+                      setPlayername(e.target.value);
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      if (playername.length > 1) {
+                        setNotification(null);
+                        setClicked("create");
+                        const creator = true;
+                        setRoomId(shortid.generate().substring(0, 5));
+                        setRoomId((state) => {
+                          dispatch(
+                            gameActions.joinRoom(
+                              socket,
+                              playername,
+                              state,
+                              creator
+                            )
+                          );
+                          return state;
+                        });
+                      } else {
+                        setNotification("Enter a player name");
+                      }
+                    }}
+                    className="start-btn"
+                  >
+                    Create Game Room
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (playername.length > 1) {
+                        setClicked("join");
+                      } else {
+                        setNotification("Enter a player name");
+                      }
+                    }}
+                    className="warmup-btn-inv"
+                  >
+                    Join Room
+                  </button>
+                </>
+              )}
 
-                <input
-                  placeholder="Room ID"
-                  value={roomIdVal}
-                  onChange={(e) => {
-                    setRoomIdVal(e.target.value);
-
-                    setLobbyChannel("tictactoelobby--" + e.target.value);
-                    localStorage.setItem(
-                      "channel",
-                      "tictactoelobby--" + e.target.value
-                    );
-                  }}
-                />
-                <button
-                  onClick={() => {
-                    setLoading(true);
-                    onPressJoin();
-                  }}
-                  className="warmup-btn"
-                >
-                  {loading ? (
-                    <>
-                      <div class="lds-ring">
-                        <div></div>
-                        <div></div>
-                        <div></div>
-                        <div></div>
-                      </div>
-                    </>
+              {clicked === "create" && (
+                <>
+                  {connectedPlayers - 1 == 0 || connectedPlayers - 1 == -1 ? (
+                    <p>Waiting for players to join...</p>
                   ) : (
-                    "Join Game"
+                    <>
+                      {connectedPlayers - 1 == 1 ? (
+                        <p>
+                          <strong>
+                            {connectedPlayers - 1} player has joined this room
+                          </strong>
+                        </p>
+                      ) : (
+                        <p>
+                          <strong>
+                            {connectedPlayers - 1} players have joined this room
+                          </strong>
+                        </p>
+                      )}
+                    </>
                   )}
-                </button>
-                <button
-                  onClick={() => {
-                    setClicked("warmup");
-                  }}
-                  className="warmup-btn-inv"
-                >
-                  Go Back
-                </button>
-              </>
-            )}
-          </>
-        ) : (
-          <>
-            <p style={{ marginBottom: 50 }}>Battle starts in..</p>
+                  <h1 style={{ marginTop: 30 }}>{roomId}</h1>
+                  <p style={{ textAlign: "center", lineHeight: 2 }}>
+                    Share your room id with your friends to join this room and
+                    compete with you.
+                  </p>
+                  {connectedPlayers - 1 >= 1 && (
+                    <button
+                      onClick={() => {
+                        setLoading(true);
+                        dispatch(gameActions.prepareToStart(socket, room));
+                      }}
+                      className="start-btn"
+                    >
+                      {loading ? (
+                        <div>
+                          <div className="lds-ring">
+                            <div></div>
+                            <div></div>
+                            <div></div>
+                            <div></div>
+                          </div>
+                        </div>
+                      ) : (
+                        "Start Game"
+                      )}
+                    </button>
+                  )}
 
-            <h1 style={{ marginBottom: 30, fontSize: 100 }}>{time}</h1>
-          </>
-        )}
+                  <button
+                    onClick={() => {
+                      setNotification(null);
+                      setClicked("warmup");
+
+                      setLoading(false);
+                      dispatch(gameActions.leaveRoom(socket, room));
+                    }}
+                    className="warmup-btn-inv"
+                  >
+                    Go Back
+                  </button>
+                </>
+              )}
+              {clicked === "join" && (
+                <>
+                  <h1>Enter with a room id</h1>
+
+                  <p style={{ marginBottom: 50, textAlign: "center" }}>
+                    {connectedPlayers - 1 >= 1 && (
+                      <p>The room owner should start the game soon</p>
+                    )}
+                  </p>
+
+                  <input
+                    placeholder="Room ID"
+                    value={roomIdVal}
+                    maxLength={5}
+                    onChange={(e) => {
+                      if (e.target.value.length === 5) {
+                        setNotification(null);
+                      } else {
+                        setNotification("Enter a valid room id");
+                      }
+                      setRoomIdVal(e.target.value);
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      joinRoom();
+                    }}
+                    disabled={loading}
+                    className="start-btn"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="lds-ring">
+                          <div></div>
+                          <div></div>
+                          <div></div>
+                          <div></div>
+                        </div>
+                      </>
+                    ) : (
+                      "Join Game"
+                    )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setClicked("warmup");
+                      setNotification(null);
+                      setLoading(false);
+                      dispatch(gameActions.leaveRoom(socket, room));
+                    }}
+                    className="warmup-btn-inv"
+                  >
+                    Go Back
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

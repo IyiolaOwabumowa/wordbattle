@@ -1,76 +1,82 @@
-import React, { useState, useEffect } from "react";
-import PubNub from "pubnub";
-import { PubNubProvider, usePubNub } from "pubnub-react";
+import React, { useState, useEffect, useRef } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { gameActions } from "./actions/game.actions";
+import io from "socket.io-client";
 import "./App.css";
 import WordBoard from "./components/WordBoard";
 import GameWarmup from "./components/GameWarmup";
 import GamePlay from "./components/GamePlay";
 import { BrowserRouter as Router, Route } from "react-router-dom";
 import Results from "./components/Results";
+import Splash from "./components/Splash";
+import gameplay from "./assets/gameplay.mp3";
 
 function App() {
-  //localStorage.clear()
+  const dispatch = useDispatch();
   const [playerCount, setPlayerCount] = useState(null);
   const [time, setTime] = useState(5);
   const [count, setCount] = useState(null);
   const [channelName, setChannelName] = useState(null);
-  const uuid = PubNub.generateUUID();
-  const pubnub = new PubNub({
-    publishKey: "pub-c-99b71c64-0ace-4bc8-bedf-58fffe94ef2c",
-    subscribeKey: "sub-c-8c8fcba4-6d9b-11eb-a2ab-226faaaba132",
+  const [socket, setSocket] = useState(null);
 
-    uuid: uuid,
-  });
+  const gameStatus = useSelector((state) => state.gameReducer.gameStatus);
+  const musicStatus = useSelector((state) => state.gameReducer.musicStatus);
+
+  let gameplayMusic = useRef();
 
 
   useEffect(() => {
-    const handlePresence = (event) => {
-      var occupancy = event.occupancy;
-      var channelName = event.channel;
-      setChannelName(channelName);
-      setCount(occupancy);
+    gameplayMusic.current = new Audio(gameplay);
+    gameplayMusic.current.volume = 0.15;
+    return () => {
+      gameplayMusic.current.pause();
     };
-    pubnub.addListener({ presence: handlePresence });
   }, []);
 
   useEffect(() => {
-    if (count === 2) {
-      const timeInterval = setInterval(() => {
-        if (time > 0) {
-          setTime(time - 1);
-        }
+    const socket = io("http://localhost:4000");
+    setSocket(socket);
 
-        if (time === 0) {
-          setPlayerCount(count);
-          clearInterval(timeInterval);
-        }
-      }, 1000);
+    const connectionCountHandler = (data) => {
+      dispatch(gameActions.saveConnectedPlayers(data));
+    };
 
-      return () => {
-        clearInterval(timeInterval);
-      };
-    }
-  }, [count, time]);
-  return (
-    <PubNubProvider client={pubnub}>
+    socket.on("connected-players", connectionCountHandler);
+  }, []);
+
+  if (socket) {
+    return (
       <Router>
+        {gameStatus === "started" && (
+          <Route
+            path="/"
+            exact
+            component={() => (
+              <GamePlay socket={socket} gameplayMusic={gameplayMusic.current} />
+            )}
+          />
+        )}
+
         <Route
           path="/"
           exact
-          component={
-            playerCount === 2
-              ? () => <GamePlay channelName={channelName} />
-              : GameWarmup
-          }
+          component={() => (
+            <GameWarmup socket={socket} gameplayMusic={gameplayMusic.current} />
+          )}
         />
+
         <Route
           path="/results"
           exact
-          component={() => <Results channelName={channelName} />}
+          component={() => (
+            <Results socket={socket} gameplayMusic={gameplayMusic.current} />
+          )}
         />
       </Router>
-    </PubNubProvider>
-  );
+    );
+  } else {
+    return <div className="splash-bg"></div>;
+  }
 }
 
 export default App;
