@@ -1,6 +1,7 @@
 const express = require("express");
 const http = require("http");
 const socketio = require("socket.io");
+const path = require("path");
 
 const {
   gameResults,
@@ -21,11 +22,21 @@ const {
 
 const app = express();
 const server = http.createServer(app);
-const io = socketio(server, {
-  cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"],
-  },
+const io = socketio(server
+  
+//   , {
+//   cors: {
+//     origin: "http://localhost:3000",
+//     methods: ["GET", "POST"],
+//   },
+// }
+
+);
+
+app.use(express.static(path.join(__dirname, "..", "build")));
+
+app.use((req, res, next) => {
+  res.sendFile(path.join(__dirname, "..", "build", "index.html"));
 });
 
 //Run when client connects
