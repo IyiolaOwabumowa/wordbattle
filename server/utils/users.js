@@ -5,7 +5,7 @@ const joinRoom = (id, playername, room, creator) => {
   if (roomLength == 8) {
     return "This room is full. Capacity (8 players)";
   } else {
-    const user = { id, playername, room, creator, requests: [] };
+    const user = { id, playername, room, creator, requests: [], points: 0 };
     users.push(user);
     return user;
   }
@@ -182,8 +182,10 @@ const addPoints = (id, points) => {
   if (index !== -1) {
     users[index] = {
       ...users[index],
-      points: points,
+      points: users[index].points + points,
     };
+
+    return users[index].points;
   }
 };
 

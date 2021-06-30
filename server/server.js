@@ -2,6 +2,7 @@ const express = require("express");
 const http = require("http");
 const socketio = require("socket.io");
 const path = require("path");
+const axios = require("axios");
 
 const {
   gameResults,
@@ -22,22 +23,11 @@ const {
 
 const app = express();
 const server = http.createServer(app);
-const io = socketio(server
-  
-//   , {
-//   cors: {
-//     origin: "http://localhost:3000",
-//     methods: ["GET", "POST"],
-//   },
-// }
+const io = socketio(server);
 
-);
+app.use(express.static(path.join(__dirname, "/../build")));
 
-app.use(express.static(path.join(__dirname, "..", "build")));
-
-app.use((req, res, next) => {
-  res.sendFile(path.join(__dirname, "..", "build", "index.html"));
-});
+// app.use(express.static('build')) use this in production
 
 //Run when client connects
 io.on("connection", (socket) => {
@@ -153,8 +143,27 @@ io.on("connection", (socket) => {
     io.in(room).emit("startGame", true);
   });
 
-  socket.on("addPoints", (points) => {
-    addPoints(socket.id, points);
+  socket.on("checkWord", (word) => {
+    axios
+      .get(
+        `https://od-api.oxforddictionaries.com/api/v2/entries/en-gb/${word}?strictMatch=false&fields=definitions`,
+        {
+          headers: {
+            Accept: "application/json",
+            app_id: "aa01ce93",
+            app_key: "42ff31ae9ce033a7a8e5f3b87531d9c3",
+          },
+        }
+      )
+      .then((res) => {
+        if (res.status == 200) {
+          socket.emit("answer", { word, status: 200 });
+          socket.emit("playerPoints", addPoints(socket.id, 5));
+        }
+      })
+      .catch((e) => {
+        socket.emit("answer", { word, status: 404 });
+      });
   });
 
   socket.on("readyToStart", (room) => {

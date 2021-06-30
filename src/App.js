@@ -34,7 +34,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const socket = io("http://localhost:4000");
+    const socket = io("192.168.100.58:4000"); //formerly http://localhost:4000
     setSocket(socket);
 
     const connectionCountHandler = (data) => {

@@ -76,7 +76,9 @@ const GameWarmup = ({ socket, fade, gameplayMusic }) => {
     };
   }, []);
 
-  useEffect(() => {}, [connectedPlayers]);
+  useEffect(() => {
+    console.log(connectedPlayers)
+  }, [connectedPlayers]);
 
   if (showSplash) {
     return <Splash />;
