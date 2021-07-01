@@ -25,9 +25,9 @@ const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
 
-app.use(express.static(path.join(__dirname, "/../build")));
+// app.use(express.static(path.join(__dirname, "/../build")));
 
-// app.use(express.static('build')) use this in production
+app.use(express.static("build"));
 
 //Run when client connects
 io.on("connection", (socket) => {
