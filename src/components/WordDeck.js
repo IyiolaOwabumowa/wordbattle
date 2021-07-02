@@ -4,7 +4,7 @@ import uuid from "react-uuid";
 const WordDeck = ({ deck, letters, getOccurrence }) => {
   return (
     <div className="worddeck-container">
-      {deck?.map((obj, idx) => {
+      {deck.map((obj, idx) => {
         return (
           <div
             className={` ${

@@ -86,10 +86,16 @@ io.on("connection", (socket) => {
 
   socket.on("leaveRoom", (room) => {
     const roomCreator = getRoomCreator(room);
-    if (socket.id === roomCreator?.id) {
-      socket
-        .to(room)
-        .emit("creator-not-here", "The creator of this room was disconnected");
+
+    if (roomCreator) {
+      if (socket.id === roomCreator.id) {
+        socket
+          .to(room)
+          .emit(
+            "creator-not-here",
+            "The creator of this room was disconnected"
+          );
+      }
     }
 
     const requestRecepient = removeRematchRequest(socket.id, room);
@@ -114,11 +120,15 @@ io.on("connection", (socket) => {
   //Runs when a client disconnects
   socket.on("disconnect", () => {
     const roomCreator = getRoomCreatorById(socket.id);
-
-    if (socket.id === roomCreator?.id) {
-      socket
-        .to(roomCreator.room)
-        .emit("creator-not-here", "The creator of this room was disconnected");
+    if (roomCreator) {
+      if (socket.id === roomCreator.id) {
+        socket
+          .to(roomCreator.room)
+          .emit(
+            "creator-not-here",
+            "The creator of this room was disconnected"
+          );
+      }
     }
 
     const user = leaveRoom(socket.id);
