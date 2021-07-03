@@ -26,9 +26,9 @@ const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
 
-// app.use(express.static(path.join(__dirname, "/../build")));
+ app.use(express.static(path.join(__dirname, "/../build")));
 
-app.use(express.static("build"));
+// app.use(express.static("build"));
 
 //Run when client connects
 io.on("connection", (socket) => {
@@ -37,10 +37,7 @@ io.on("connection", (socket) => {
       const user = joinRoom(socket.id, playername, room, creator);
       if (user.id) {
         socket.join(user.room);
-        io.in(user.room).emit(
-          "connected-players",
-          getRoomPlayers(user.room).length
-        );
+        io.in(user.room).emit("connected-players", getRoomPlayers(user.room));
         callback({
           status: "ok",
         });
@@ -56,6 +53,20 @@ io.on("connection", (socket) => {
     } else {
       socket.emit("creator-not-here", "No one owns this room");
     }
+  });
+
+  socket.on("sending signal", (payload) => {
+    io.to(payload.id).emit("user joined", {
+      signal: payload.signal,
+      callerID: payload.callerId,
+    });
+  });
+
+  socket.on("returning signal", (payload) => {
+    io.to(payload.callerId).emit("receiving returned signal", {
+      signal: payload.signal,
+      id: socket.id,
+    });
   });
 
   socket.on("sendRematchRequest", (room) => {

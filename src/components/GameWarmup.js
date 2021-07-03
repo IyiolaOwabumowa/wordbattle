@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { isMobile } from "react-device-detect";
 import { useHistory } from "react-router-dom";
@@ -7,6 +7,7 @@ import shortid from "shortid";
 import Splash from "./Splash";
 import CompatibilityWarning from "./CompatibilityWarning";
 import MetaTags from "react-meta-tags";
+import Peer from "simple-peer";
 
 const GameWarmup = ({ socket, fade, gameplayMusic }) => {
   const dispatch = useDispatch();
@@ -21,12 +22,15 @@ const GameWarmup = ({ socket, fade, gameplayMusic }) => {
   const [clicked, setClicked] = useState("warmup");
   const [showSplash, setShowSplash] = useState(true);
   const [visible, setVisible] = useState(false);
+  const [peers, setPeers] = useState([]);
+  const userAudio = useRef(new Audio());
+  const peersRef = useRef([]).current;
 
   const connectedPlayers = useSelector(
     (state) => state.gameReducer.connectedPlayers
   );
+  const players = useSelector((state) => state.gameReducer.players);
   const room = useSelector((state) => state.gameReducer.room);
-
   const gameStatus = useSelector((state) => state.gameReducer.gameStatus);
 
   const joinRoom = () => {
@@ -77,8 +81,74 @@ const GameWarmup = ({ socket, fade, gameplayMusic }) => {
   }, []);
 
   useEffect(() => {
-    console.log(connectedPlayers)
-  }, [connectedPlayers]);
+    navigator.mediaDevices
+      .getUserMedia({ video: false, audio: true })
+      .then((stream) => {
+        userAudio.current.srcObject = stream;
+        const peers = [];
+        players.forEach((player) => {
+          if (player.id != socket.id) {
+            const peer = createPeer(player, socket.id, stream);
+            peersRef.push({
+              peerId: player.id,
+              peer,
+            });
+
+            peers.push(peer);
+          }
+        });
+
+        console.log(peers);
+
+        setPeers(peers);
+
+        socket.on("user joined", (payload) => {
+          const peer = addPeer(payload.signal, payload.callerId, stream);
+          peersRef.push({ peerId: payload.callerId, peer });
+
+          setPeers((peers) => [...peers, peer]);
+          console.log([...peers, peer]);
+        });
+
+        socket.on("receiving returned signal", (payload) => {
+          const item = peersRef.find((peer) => peer.peerId === payload.id);
+          item.peer.signal(payload.signal);
+        });
+      });
+  }, [players]);
+
+  const createPeer = (userToSignal, callerId, stream) => {
+    const peer = new Peer({
+      initiator: true,
+      trickle: false,
+      stream,
+    });
+
+    const id = userToSignal.id;
+
+    peer.on("signal", (signal) => {
+      socket.emit("sending signal", { id, callerId, signal });
+    });
+
+    return peer;
+  };
+
+  const addPeer = (incomingSignal, callerId, stream) => {
+    const peer = new Peer({
+      initiator: false,
+      trickle: false,
+      stream,
+    });
+
+    peer.signal(incomingSignal);
+    peer.on("signal", (signal) => {
+      socket.emit("returning signal", { signal, callerId });
+    });
+
+    return peer;
+  };
+
+  useEffect(() => {}, [connectedPlayers]);
 
   if (showSplash) {
     return <Splash />;
@@ -87,6 +157,18 @@ const GameWarmup = ({ socket, fade, gameplayMusic }) => {
   if (mobile) {
     return <CompatibilityWarning />;
   }
+
+  const AudioPlayer = ({ peer }) => {
+    const ref = useRef(new Audio()).current;
+
+    useEffect(() => {
+      peer.on("stream", (stream) => {
+        ref.srcObject = stream;
+      });
+    }, []);
+
+    return <audio playsInline autoPlay ref={ref} />;
+  };
 
   return (
     <>
@@ -115,6 +197,10 @@ const GameWarmup = ({ socket, fade, gameplayMusic }) => {
           </div>
 
           <div className="warmup-padding">
+            <audio ref={userAudio} controls volume="true" autoPlay />
+            {peers.map((peer, index) => {
+              return <AudioPlayer key={index} peer={peer} />;
+            })}
             <div>
               {clicked === "warmup" && (
                 <>

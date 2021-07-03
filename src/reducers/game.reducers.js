@@ -5,6 +5,8 @@ const initialState = {
   room: null,
   gameStatus: "ended",
   stopMusic: false,
+  connectedPlayers: 0,
+  players: [],
 };
 
 export default function gameReducer(state = initialState, action) {
@@ -55,7 +57,11 @@ export default function gameReducer(state = initialState, action) {
         ...state,
         gameStatus: action.gameStatus,
       };
-
+    case gameConstants.ALL_PLAYERS:
+      return {
+        ...state,
+        players: action.players,
+      };
     case gameConstants.CONNECTED_PLAYERS:
       return {
         ...state,

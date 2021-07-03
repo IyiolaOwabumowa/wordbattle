@@ -115,14 +115,19 @@ function leaveRoom(socket, room) {
   }
 }
 
-function saveConnectedPlayers(count) {
+function saveConnectedPlayers(players) {
   return (dispatch) => {
-    localStorage.setItem("connected-players", count);
-    dispatch(success(count));
+    localStorage.setItem("connected-players", players.length);
+    dispatch(success(players.length));
+    dispatch(allPlayers(players));
+
   };
 
   function success(count) {
     return { type: gameConstants.CONNECTED_PLAYERS, count };
+  }
+  function allPlayers(players) {
+    return { type: gameConstants.ALL_PLAYERS, players };
   }
 }
 
