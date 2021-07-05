@@ -117,7 +117,7 @@ function leaveRoom(socket, room) {
 
 function saveConnectedPlayers(players) {
   return (dispatch) => {
-    localStorage.setItem("connected-players", players.length);
+    localStorage.setItem("connected-players", players);
     dispatch(success(players.length));
     dispatch(allPlayers(players));
 
