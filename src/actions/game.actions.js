@@ -123,8 +123,8 @@ function saveConnectedPlayers(players) {
 
   };
 
-  function success(count) {
-    return { type: gameConstants.CONNECTED_PLAYERS, count };
+  function success(connectedPlayers) {
+    return { type: gameConstants.CONNECTED_PLAYERS, connectedPlayers };
   }
   function allPlayers(players) {
     return { type: gameConstants.ALL_PLAYERS, players };

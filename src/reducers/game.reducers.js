@@ -65,7 +65,7 @@ export default function gameReducer(state = initialState, action) {
     case gameConstants.CONNECTED_PLAYERS:
       return {
         ...state,
-        connectedPlayers: action.count,
+        connectedPlayers: action.connectedPlayers,
       };
 
     case gameConstants.MUSIC_STATUS:

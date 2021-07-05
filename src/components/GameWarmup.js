@@ -49,7 +49,7 @@ const GameWarmup = ({ socket, fade, gameplayMusic }) => {
     if (players.length > 0) {
       setReady(true);
     }
-  }, [players]);
+  }, [connectedPlayers]);
 
   useEffect(() => {
     setTimeout(() => {
