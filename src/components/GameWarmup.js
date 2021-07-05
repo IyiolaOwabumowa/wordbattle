@@ -23,6 +23,7 @@ const GameWarmup = ({ socket, fade, gameplayMusic }) => {
   const [showSplash, setShowSplash] = useState(true);
   const [visible, setVisible] = useState(false);
   const [peers, setPeers] = useState([]);
+  const [ready, setReady] = useState(false);
   const userAudio = useRef(new Audio());
   const peersRef = useRef([]).current;
 
@@ -43,6 +44,12 @@ const GameWarmup = ({ socket, fade, gameplayMusic }) => {
       setNotification("Enter a valid room id");
     }
   };
+
+  useEffect(() => {
+    if (players.length > 0) {
+      setReady(true);
+    }
+  }, [players]);
 
   useEffect(() => {
     setTimeout(() => {
@@ -81,14 +88,14 @@ const GameWarmup = ({ socket, fade, gameplayMusic }) => {
   }, []);
 
   useEffect(() => {
-    navigator.mediaDevices
-      .getUserMedia({ video: false, audio: true })
-      .then((stream) => {
+    if (ready) {
+      navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
         userAudio.current.srcObject = stream;
+        console.log(stream);
         const peers = [];
         players.forEach((player) => {
           if (player.id != socket.id) {
-            const peer = createPeer(player, socket.id, stream);
+            const peer = createPeer(player.id, socket.id, stream);
             peersRef.push({
               peerId: player.id,
               peer,
@@ -98,24 +105,21 @@ const GameWarmup = ({ socket, fade, gameplayMusic }) => {
           }
         });
 
-        console.log(peers);
-
         setPeers(peers);
 
-        socket.on("user joined", (payload) => {
+        socket.on("userJoined", (payload) => {
           const peer = addPeer(payload.signal, payload.callerId, stream);
           peersRef.push({ peerId: payload.callerId, peer });
-
           setPeers((peers) => [...peers, peer]);
-          console.log([...peers, peer]);
         });
 
-        socket.on("receiving returned signal", (payload) => {
+        socket.on("receivingReturnedSignal", (payload) => {
           const item = peersRef.find((peer) => peer.peerId === payload.id);
           item.peer.signal(payload.signal);
         });
       });
-  }, [players]);
+    }
+  }, [ready]);
 
   const createPeer = (userToSignal, callerId, stream) => {
     const peer = new Peer({
@@ -124,10 +128,9 @@ const GameWarmup = ({ socket, fade, gameplayMusic }) => {
       stream,
     });
 
-    const id = userToSignal.id;
-
+    const id = userToSignal;
     peer.on("signal", (signal) => {
-      socket.emit("sending signal", { id, callerId, signal });
+      socket.emit("sendingSignal", { id, callerId, signal });
     });
 
     return peer;
@@ -140,10 +143,10 @@ const GameWarmup = ({ socket, fade, gameplayMusic }) => {
       stream,
     });
 
-    peer.signal(incomingSignal);
     peer.on("signal", (signal) => {
-      socket.emit("returning signal", { signal, callerId });
+      socket.emit("returningSignal", { signal, callerId });
     });
+    peer.signal(incomingSignal);
 
     return peer;
   };
@@ -163,11 +166,11 @@ const GameWarmup = ({ socket, fade, gameplayMusic }) => {
 
     useEffect(() => {
       peer.on("stream", (stream) => {
+        console.log(stream);
         ref.srcObject = stream;
       });
     }, []);
-
-    return <audio playsInline autoPlay ref={ref} />;
+    return <audio ref={ref} controls volume="true"  autoPlay />;
   };
 
   return (
@@ -197,9 +200,9 @@ const GameWarmup = ({ socket, fade, gameplayMusic }) => {
           </div>
 
           <div className="warmup-padding">
-            <audio ref={userAudio} controls volume="true" autoPlay />
-            {peers.map((peer, index) => {
-              return <AudioPlayer key={index} peer={peer} />;
+            <audio autoPlay  muted ref={userAudio} controls volume="true"  />
+            {peersRef.map((peer, index) => {
+              return <AudioPlayer key={index} peer={peer.peer} />;
             })}
             <div>
               {clicked === "warmup" && (

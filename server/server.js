@@ -26,9 +26,9 @@ const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
 
- app.use(express.static(path.join(__dirname, "/../build")));
+ //app.use(express.static(path.join(__dirname, "/../build")));
 
-// app.use(express.static("build"));
+ app.use(express.static("build"));
 
 //Run when client connects
 io.on("connection", (socket) => {
@@ -55,15 +55,15 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("sending signal", (payload) => {
-    io.to(payload.id).emit("user joined", {
+  socket.on("sendingSignal", (payload) => {
+    io.to(payload.id).emit("userJoined", {
       signal: payload.signal,
-      callerID: payload.callerId,
+      callerId: payload.callerId,
     });
   });
 
-  socket.on("returning signal", (payload) => {
-    io.to(payload.callerId).emit("receiving returned signal", {
+  socket.on("returningSignal", (payload) => {
+    io.to(payload.callerId).emit("receivingReturnedSignal", {
       signal: payload.signal,
       id: socket.id,
     });
