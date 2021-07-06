@@ -24,7 +24,6 @@ function App() {
 
   let gameplayMusic = useRef();
 
-
   useEffect(() => {
     gameplayMusic.current = new Audio(gameplay);
     gameplayMusic.current.volume = 0.15;
@@ -38,7 +37,7 @@ function App() {
     setSocket(socket);
 
     const connectionCountHandler = (data) => {
-      dispatch(gameActions.saveConnectedPlayers(data));
+      dispatch(gameActions.saveConnectedPlayers(data.length));
     };
 
     socket.on("connected-players", connectionCountHandler);
