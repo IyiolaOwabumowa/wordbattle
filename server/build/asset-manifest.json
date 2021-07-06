@@ -1,0 +1,28 @@
+{
+  "files": {
+    "main.css": "/static/css/main.dccd3aa2.chunk.css",
+    "main.js": "/static/js/main.cccdd45d.chunk.js",
+    "main.js.map": "/static/js/main.cccdd45d.chunk.js.map",
+    "runtime-main.js": "/static/js/runtime-main.018b4113.js",
+    "runtime-main.js.map": "/static/js/runtime-main.018b4113.js.map",
+    "static/js/2.f04c6e99.chunk.js": "/static/js/2.f04c6e99.chunk.js",
+    "static/js/2.f04c6e99.chunk.js.map": "/static/js/2.f04c6e99.chunk.js.map",
+    "static/js/3.63397942.chunk.js": "/static/js/3.63397942.chunk.js",
+    "static/js/3.63397942.chunk.js.map": "/static/js/3.63397942.chunk.js.map",
+    "index.html": "/index.html",
+    "static/css/main.dccd3aa2.chunk.css.map": "/static/css/main.dccd3aa2.chunk.css.map",
+    "static/js/2.f04c6e99.chunk.js.LICENSE.txt": "/static/js/2.f04c6e99.chunk.js.LICENSE.txt",
+    "static/media/App.css": "/static/media/word-battle.eafe65b8.jpg",
+    "static/media/gameplay.2e1ddf7f.mp3": "/static/media/gameplay.2e1ddf7f.mp3",
+    "static/media/keypress.a5e4fef1.mp3": "/static/media/keypress.a5e4fef1.mp3",
+    "static/media/logo.d0544f13.png": "/static/media/logo.d0544f13.png",
+    "static/media/right.297a1043.mp3": "/static/media/right.297a1043.mp3",
+    "static/media/wrong.c8c85237.mp3": "/static/media/wrong.c8c85237.mp3"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.018b4113.js",
+    "static/js/2.f04c6e99.chunk.js",
+    "static/css/main.dccd3aa2.chunk.css",
+    "static/js/main.cccdd45d.chunk.js"
+  ]
+}
