@@ -90,8 +90,8 @@ const GameWarmup = ({ socket, fade, gameplayMusic }) => {
   useEffect(() => {
     if (ready) {
       navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-        userAudio.current.srcObject = stream;
-        console.log(stream);
+        const audio = document.getElementById("myStream");
+        audio.srcObject = stream;
         const peers = [];
         players.forEach((player) => {
           if (player.id != socket.id) {
@@ -163,14 +163,19 @@ const GameWarmup = ({ socket, fade, gameplayMusic }) => {
 
   const AudioPlayer = ({ peer }) => {
     const ref = useRef(new Audio()).current;
+    console.log(peer.peerId);
 
     useEffect(() => {
-      peer.on("stream", (stream) => {
-        console.log(stream);
-        ref.srcObject = stream;
+      peer.peer.on("stream", (stream) => {
+        // console.log(stream);
+        // ref.srcObject = stream;
+        const audio = document.getElementById(`peerId${peer.peerId}`);
+        audio.srcObject = stream;
       });
     }, []);
-    return <audio ref={ref} controls volume="true"  autoPlay />;
+    return (
+      <audio id={`peerId${peer.peerId}`} controls volume="true" autoPlay />
+    );
   };
 
   return (
@@ -200,9 +205,9 @@ const GameWarmup = ({ socket, fade, gameplayMusic }) => {
           </div>
 
           <div className="warmup-padding">
-            <audio autoPlay  muted ref={userAudio} controls volume="true"  />
+            <audio id="myStream" autoPlay muted controls volume="true" />
             {peersRef.map((peer, index) => {
-              return <AudioPlayer key={index} peer={peer.peer} />;
+              return <AudioPlayer key={index} peer={peer} />;
             })}
             <div>
               {clicked === "warmup" && (

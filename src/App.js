@@ -34,7 +34,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const socket = io("https://word-battle.com"); //formerly http://localhost:4000
+    const socket = io("http://localhost:4000"); //formerly http://localhost:4000
     setSocket(socket);
 
     const connectionCountHandler = (data) => {
