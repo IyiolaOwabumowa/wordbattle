@@ -67,12 +67,10 @@ const GamePlay = ({ socket, gameplayMusic }) => {
     };
 
     const deckHandler = (data) => {
-      console.log("generated");
       deck.current = data;
     };
 
     const answerHandler = ({ word, status }) => {
-      console.log(points);
       if (status == 200) {
         right.play();
         setFormedWords([...formedWords, word]);
@@ -90,7 +88,6 @@ const GamePlay = ({ socket, gameplayMusic }) => {
     };
 
     const pointsHandler = (points) => {
-      console.log(points);
       setPoints(points);
     };
 
