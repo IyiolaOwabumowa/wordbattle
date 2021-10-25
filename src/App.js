@@ -37,7 +37,7 @@ function App() {
     setSocket(socket);
 
     const connectionCountHandler = (data) => {
-      dispatch(gameActions.saveConnectedPlayers(data.length));
+      dispatch(gameActions.saveConnectedPlayers(data));
     };
 
     socket.on("connected-players", connectionCountHandler);
@@ -46,7 +46,7 @@ function App() {
   if (socket) {
     return (
       <Router>
-        {gameStatus === "started" && (
+        {gameStatus === "started" ? (
           <Route
             path="/"
             exact
@@ -54,15 +54,18 @@ function App() {
               <GamePlay socket={socket} gameplayMusic={gameplayMusic.current} />
             )}
           />
+        ) : (
+          <Route
+            path="/"
+            exact
+            component={() => (
+              <GameWarmup
+                socket={socket}
+                gameplayMusic={gameplayMusic.current}
+              />
+            )}
+          />
         )}
-
-        <Route
-          path="/"
-          exact
-          component={() => (
-            <GameWarmup socket={socket} gameplayMusic={gameplayMusic.current} />
-          )}
-        />
 
         <Route
           path="/results"
